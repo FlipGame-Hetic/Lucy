@@ -37,3 +37,6 @@ rust-embed = "8.5.0"
 
 # JSON Schema generation
 schemars = "0.8.22"
+
+# Compile-time static registration
+inventory = "0.3"
