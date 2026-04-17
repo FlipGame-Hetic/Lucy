@@ -10,12 +10,12 @@ readme      = "../../README.md"
 repository.workspace = true
 
 [dependencies]
-lucy-core  = { path = "../lucy-core",  version = "0.1.0" }
-lucy-macro = { path = "../lucy-macro", version = "0.1.0" }
-lucy-types = { path = "../lucy-types", version = "0.1.0" }
+lucy-core  = { path = "../lucy-core",  version = "0.1.1" }
+lucy-macro = { path = "../lucy-macro", version = "0.1.1" }
+lucy-types = { path = "../lucy-types", version = "0.1.1" }
 inventory  = { workspace = true }
 schemars   = { workspace = true }
 serde_json = { workspace = true }
 
 [dev-dependencies]
-lucy-core = { path = "../lucy-core", version = "0.1.0" }
+lucy-core = { path = "../lucy-core", version = "0.1.1" }
