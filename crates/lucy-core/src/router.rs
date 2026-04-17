@@ -34,10 +34,10 @@ where
     Router::new()
         // Explicit routes for the root — Axum's `{*path}` wildcard requires at
         // least one path segment, so `/docs` and `/docs/` would 404 without these.
-        .route("/docs",           get(assets::serve_index))
-        .route("/docs/",          get(assets::serve_index))
+        .route("/docs", get(assets::serve_index))
+        .route("/docs/", get(assets::serve_index))
         .route("/docs/spec.json", get(spec_handler))
-        .route("/docs/{*path}",   get(assets::serve_asset))
+        .route("/docs/{*path}", get(assets::serve_asset))
 }
 
 /// Returns the currently registered endpoint spec as JSON.

@@ -8,7 +8,11 @@ use lucy::lucy_http;
 use lucy_core::registry::global_registry;
 
 #[allow(dead_code)]
-#[lucy_http(method = "GET", path = "/integration-test", description = "integration test endpoint")]
+#[lucy_http(
+    method = "GET",
+    path = "/integration-test",
+    description = "integration test endpoint"
+)]
 async fn dummy_handler() -> &'static str {
     "ok"
 }
@@ -27,5 +31,8 @@ fn lucy_http_registers_endpoint_in_global_registry() {
         .expect("endpoint '/integration-test' must be present after macro annotation");
 
     assert_eq!(found.method.as_deref(), Some("GET"));
-    assert_eq!(found.description.as_deref(), Some("integration test endpoint"));
+    assert_eq!(
+        found.description.as_deref(),
+        Some("integration test endpoint")
+    );
 }

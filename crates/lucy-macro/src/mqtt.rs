@@ -44,10 +44,7 @@ impl Parse for MqttArgs {
             match key.to_string().as_str() {
                 "topic" => {
                     if topic.is_some() {
-                        return Err(syn::Error::new_spanned(
-                            &key,
-                            "duplicate `topic` argument",
-                        ));
+                        return Err(syn::Error::new_spanned(&key, "duplicate `topic` argument"));
                     }
                     topic = Some(input.parse::<LitStr>()?);
                 }
@@ -62,10 +59,7 @@ impl Parse for MqttArgs {
                 }
                 "tags" => {
                     if tags.is_some() {
-                        return Err(syn::Error::new_spanned(
-                            &key,
-                            "duplicate `tags` argument",
-                        ));
+                        return Err(syn::Error::new_spanned(&key, "duplicate `tags` argument"));
                     }
                     tags = Some(input.parse::<LitStr>()?);
                 }
@@ -152,7 +146,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as ItemFn);
 
     let fn_name = func.sig.ident.to_string();
-    let topic   = &args.topic;   // stored in the `path` field
+    let topic = &args.topic; // stored in the `path` field
 
     let description_tokens = match &args.description {
         Some(desc) => quote! { ::core::option::Option::Some(#desc) },

@@ -66,7 +66,10 @@ fn build_ui(workspace_root: &Path) -> Result<(), String> {
         ));
     }
 
-    println!("==> Installing npm dependencies in `{}`...", ui_dir.display());
+    println!(
+        "==> Installing npm dependencies in `{}`...",
+        ui_dir.display()
+    );
     run_command(BUILD_CMD, NPM_INSTALL_ARGS, &ui_dir)?;
 
     println!("==> Building React frontend...");

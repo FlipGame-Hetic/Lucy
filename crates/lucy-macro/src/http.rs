@@ -49,19 +49,13 @@ impl Parse for HttpArgs {
             match key.to_string().as_str() {
                 "method" => {
                     if method.is_some() {
-                        return Err(syn::Error::new_spanned(
-                            &key,
-                            "duplicate `method` argument",
-                        ));
+                        return Err(syn::Error::new_spanned(&key, "duplicate `method` argument"));
                     }
                     method = Some(input.parse::<LitStr>()?);
                 }
                 "path" => {
                     if path.is_some() {
-                        return Err(syn::Error::new_spanned(
-                            &key,
-                            "duplicate `path` argument",
-                        ));
+                        return Err(syn::Error::new_spanned(&key, "duplicate `path` argument"));
                     }
                     path = Some(input.parse::<LitStr>()?);
                 }
@@ -76,10 +70,7 @@ impl Parse for HttpArgs {
                 }
                 "tags" => {
                     if tags.is_some() {
-                        return Err(syn::Error::new_spanned(
-                            &key,
-                            "duplicate `tags` argument",
-                        ));
+                        return Err(syn::Error::new_spanned(&key, "duplicate `tags` argument"));
                     }
                     tags = Some(input.parse::<LitStr>()?);
                 }
@@ -118,11 +109,10 @@ impl Parse for HttpArgs {
             let _comma: Token![,] = input.parse()?;
         }
 
-        let method = method.ok_or_else(|| {
-            syn::Error::new(input.span(), "missing required `method` argument")
-        })?;
-        let path = path
-            .ok_or_else(|| syn::Error::new(input.span(), "missing required `path` argument"))?;
+        let method = method
+            .ok_or_else(|| syn::Error::new(input.span(), "missing required `method` argument"))?;
+        let path =
+            path.ok_or_else(|| syn::Error::new(input.span(), "missing required `path` argument"))?;
 
         let tags_vec: Vec<String> = tags
             .map(|t| {
@@ -171,9 +161,9 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let args = parse_macro_input!(attr as HttpArgs);
     let func = parse_macro_input!(item as ItemFn);
 
-    let fn_name   = func.sig.ident.to_string();
-    let path      = &args.path;
-    let method    = &args.method;
+    let fn_name = func.sig.ident.to_string();
+    let path = &args.path;
+    let method = &args.method;
 
     let description_tokens = match &args.description {
         Some(desc) => quote! { ::core::option::Option::Some(#desc) },

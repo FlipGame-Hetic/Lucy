@@ -147,7 +147,10 @@ mod tests {
 
     #[test]
     fn mime_from_extension_returns_expected_types() {
-        assert_eq!(mime_from_extension("index.html"), "text/html; charset=utf-8");
+        assert_eq!(
+            mime_from_extension("index.html"),
+            "text/html; charset=utf-8"
+        );
         assert_eq!(
             mime_from_extension("app.js"),
             "application/javascript; charset=utf-8"

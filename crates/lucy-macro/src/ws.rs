@@ -44,10 +44,7 @@ impl Parse for WsArgs {
             match key.to_string().as_str() {
                 "path" => {
                     if path.is_some() {
-                        return Err(syn::Error::new_spanned(
-                            &key,
-                            "duplicate `path` argument",
-                        ));
+                        return Err(syn::Error::new_spanned(&key, "duplicate `path` argument"));
                     }
                     path = Some(input.parse::<LitStr>()?);
                 }
@@ -62,10 +59,7 @@ impl Parse for WsArgs {
                 }
                 "tags" => {
                     if tags.is_some() {
-                        return Err(syn::Error::new_spanned(
-                            &key,
-                            "duplicate `tags` argument",
-                        ));
+                        return Err(syn::Error::new_spanned(&key, "duplicate `tags` argument"));
                     }
                     tags = Some(input.parse::<LitStr>()?);
                 }
@@ -104,8 +98,8 @@ impl Parse for WsArgs {
             let _comma: Token![,] = input.parse()?;
         }
 
-        let path = path
-            .ok_or_else(|| syn::Error::new(input.span(), "missing required `path` argument"))?;
+        let path =
+            path.ok_or_else(|| syn::Error::new(input.span(), "missing required `path` argument"))?;
 
         let tags_vec: Vec<String> = tags
             .map(|t| {
@@ -152,7 +146,7 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
     let func = parse_macro_input!(item as ItemFn);
 
     let fn_name = func.sig.ident.to_string();
-    let path    = &args.path;
+    let path = &args.path;
 
     let description_tokens = match &args.description {
         Some(desc) => quote! { ::core::option::Option::Some(#desc) },

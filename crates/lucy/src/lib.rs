@@ -40,12 +40,12 @@
 
 // Re-export the runtime API from lucy-core
 pub use lucy_core::registry::EndpointRegistry; // Global endpoint registry for collected metadata
-pub use lucy_core::router::docs_router;        // Axum router serving the `/docs` UI and JSON spec
+pub use lucy_core::router::docs_router; // Axum router serving the `/docs` UI and JSON spec
 
 // Re-export the proc-macros from lucy-macro
 pub use lucy_macro::lucy_http; // Attribute macro for HTTP REST handlers
 pub use lucy_macro::lucy_mqtt; // Attribute macro for MQTT topic handlers
-pub use lucy_macro::lucy_ws;   // Attribute macro for WebSocket handlers
+pub use lucy_macro::lucy_ws; // Attribute macro for WebSocket handlers
 
 /// Hidden re-exports required by macro-generated code.
 ///
