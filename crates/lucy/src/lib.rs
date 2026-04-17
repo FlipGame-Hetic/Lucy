@@ -57,4 +57,6 @@ pub use lucy_macro::lucy_ws;   // Attribute macro for WebSocket handlers
 pub mod _private {
     pub use inventory;
     pub use lucy_types;
+    pub use schemars;
+    pub use serde_json;
 }

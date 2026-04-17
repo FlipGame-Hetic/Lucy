@@ -18,8 +18,8 @@ export interface EndpointMeta {
   description?: string
   /** HTTP verb (GET, POST, etc.). Defined only for Http endpoints. */
   method?: string
-  request_schema?: unknown
-  response_schema?: unknown
+  request_schema?: Record<string, unknown>
+  response_schema?: Record<string, unknown>
   /** Classification tags for grouping endpoints (e.g. ["screens", "api"]). */
   tags?: string[]
 }

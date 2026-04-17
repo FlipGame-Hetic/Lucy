@@ -1,6 +1,8 @@
 import { useState, useId } from 'react'
 import type { EndpointMeta } from '../types'
 import { useAuth, buildAuthHeaders } from '../context/AuthContext'
+import { SchemaViewer } from './SchemaViewer'
+import { schemaExampleJson } from '../utils/schemaToExample'
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -189,10 +191,13 @@ export function HttpEndpointCard({ endpoint }: HttpEndpointCardProps): React.JSX
   const [paramValues, setParamValues] = useState<Record<string, string>>(
     Object.fromEntries(pathParams.map((p) => [p, ''])),
   )
-  // Pre-fill body with an example skeleton for methods that accept a body.
-  const [body, setBody] = useState(() =>
-    hasBody ? generateExampleBody(endpoint) : '',
-  )
+  // Pre-fill body from request_schema when available; fall back to the generic skeleton.
+  const [body, setBody] = useState(() => {
+    if (hasBody && endpoint.request_schema) {
+      return schemaExampleJson(endpoint.request_schema as Record<string, unknown>)
+    }
+    return hasBody ? generateExampleBody(endpoint) : ''
+  })
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState<ResponseState | null>(null)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -371,6 +376,16 @@ export function HttpEndpointCard({ endpoint }: HttpEndpointCardProps): React.JSX
                 <code>{response.body}</code>
               </pre>
             </div>
+          )}
+
+          {/* Response schema viewer */}
+          {response !== null && endpoint.response_schema && (
+            <section className="form-section">
+              <SchemaViewer
+                schema={endpoint.response_schema as Record<string, unknown>}
+                label="Response"
+              />
+            </section>
           )}
         </div>
       )}

@@ -78,6 +78,12 @@ pub struct EndpointMetaStatic {
     pub method: Option<&'static str>,
     /// Tags for grouping, as a static string slice.
     pub tags: &'static [&'static str],
+    /// Called once at startup to generate the request JSON Schema.
+    /// `None` for endpoints with no request body.
+    pub request_schema_fn: Option<fn() -> serde_json::Value>,
+    /// Called once at startup to generate the response JSON Schema.
+    /// `None` for endpoints with no response schema.
+    pub response_schema_fn: Option<fn() -> serde_json::Value>,
 }
 
 impl EndpointMetaStatic {
@@ -89,8 +95,8 @@ impl EndpointMetaStatic {
             protocol: self.protocol.clone(),
             description: self.description.map(|s| s.to_owned()),
             method: self.method.map(|s| s.to_owned()),
-            request_schema: None,
-            response_schema: None,
+            request_schema: self.request_schema_fn.map(|f| f()),
+            response_schema: self.response_schema_fn.map(|f| f()),
             tags: self.tags.iter().map(|s| s.to_string()).collect(),
         }
     }

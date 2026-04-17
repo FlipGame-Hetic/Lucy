@@ -4,15 +4,16 @@ import { useSpec } from './hooks/useSpec'
 import { HttpPanel } from './panels/HttpPanel'
 import { WsPanel } from './panels/WsPanel'
 import { MqttPanel } from './panels/MqttPanel'
+import { ModelsPanel } from './panels/ModelsPanel'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { AuthModal } from './components/AuthModal'
 import type { Protocol } from './types'
 
-/** The three protocol tabs available in the Lucy UI. */
-type ActiveTab = 'http' | 'ws' | 'mqtt'
+/** The four tabs available in the Lucy UI. */
+type ActiveTab = 'http' | 'ws' | 'mqtt' | 'models'
 
-/** Maps an `ActiveTab` value to the corresponding `Protocol` discriminant. */
-const TAB_TO_PROTOCOL: Record<ActiveTab, Protocol> = {
+/** Maps a protocol tab value to the corresponding `Protocol` discriminant. */
+const TAB_TO_PROTOCOL: Record<Exclude<ActiveTab, 'models'>, Protocol> = {
   http: 'Http',
   ws: 'WebSocket',
   mqtt: 'Mqtt',
@@ -23,9 +24,10 @@ const TAB_LABELS: Record<ActiveTab, string> = {
   http: 'HTTP',
   ws: 'WebSocket',
   mqtt: 'MQTT',
+  models: 'Models',
 }
 
-const TABS: ActiveTab[] = ['http', 'ws', 'mqtt']
+const TABS: ActiveTab[] = ['http', 'ws', 'mqtt', 'models']
 
 // ---------------------------------------------------------------------------
 // Inner app (needs AuthProvider in scope for useAuth)
@@ -46,9 +48,11 @@ function AppInner(): React.JSX.Element {
   const isAuthConfigured = auth.type !== 'none'
 
   const filteredEndpoints =
-    spec?.endpoints.filter(
-      (endpoint) => endpoint.protocol === TAB_TO_PROTOCOL[activeTab],
-    ) ?? []
+    activeTab !== 'models'
+      ? (spec?.endpoints.filter(
+          (endpoint) => endpoint.protocol === TAB_TO_PROTOCOL[activeTab],
+        ) ?? [])
+      : []
 
   return (
     <div className="app">
@@ -127,6 +131,10 @@ function AppInner(): React.JSX.Element {
 
         {!loading && error === null && activeTab === 'mqtt' && (
           <MqttPanel endpoints={filteredEndpoints} />
+        )}
+
+        {!loading && error === null && activeTab === 'models' && (
+          <ModelsPanel endpoints={spec?.endpoints ?? []} />
         )}
       </main>
 

@@ -56,7 +56,7 @@ export function WsEndpointCard({ endpoint }: WsEndpointCardProps): React.JSX.Ele
   )
   const [messageInput, setMessageInput] = useState('')
 
-  const { status, messages, connect, disconnect, send, clearMessages } = useWebSocket()
+  const { status, messages, lastClose, connect, disconnect, send, clearMessages } = useWebSocket()
 
   const logEndRef = useRef<HTMLDivElement | null>(null)
 
@@ -85,8 +85,8 @@ export function WsEndpointCard({ endpoint }: WsEndpointCardProps): React.JSX.Ele
     setMessageInput('')
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>): void {
-    if (e.key === 'Enter') handleSend()
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>): void {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSend()
   }
 
   const isConnected = status === 'connected'
@@ -165,7 +165,7 @@ export function WsEndpointCard({ endpoint }: WsEndpointCardProps): React.JSX.Ele
           <div className="form-section form-section--inline">
             {!isConnected && status !== 'connecting' ? (
               <button className="btn btn--connect" onClick={handleConnect}>
-                Connect
+                {status === 'error' ? 'Retry' : 'Connect'}
               </button>
             ) : isConnecting ? (
               <button className="btn btn--connect" disabled aria-busy>
@@ -176,27 +176,32 @@ export function WsEndpointCard({ endpoint }: WsEndpointCardProps): React.JSX.Ele
                 Disconnect
               </button>
             )}
-            {status === 'error' && (
-              <span className="ws-status-error" role="alert">Connection error</span>
-            )}
           </div>
+
+          {/* Error / close reason — persists until next connect attempt */}
+          {status === 'error' && lastClose !== null && (
+            <div className="response-panel response-panel--error" role="alert">
+              <strong>Close {lastClose.code}</strong> — {lastClose.reason}
+            </div>
+          )}
 
           {/* Message send */}
           <section className="form-section">
             <h3 className="form-section__title">
-              <span className="form-section__badge">Send Message</span>
+              <span className="form-section__badge">Message Body</span>
             </h3>
-            <div className="form-row">
-              <input
-                className="form-input"
-                type="text"
-                placeholder='{"type": "ping"}'
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={!isConnected}
-                aria-label="Message payload"
-              />
+            <textarea
+              className="form-textarea"
+              rows={5}
+              placeholder={'{\n  "type": "ping"\n}'}
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={!isConnected}
+              spellCheck={false}
+              aria-label="Message payload"
+            />
+            <div className="form-section form-section--actions">
               <button
                 className="btn btn--primary"
                 onClick={handleSend}

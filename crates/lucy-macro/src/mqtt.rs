@@ -20,6 +20,10 @@ pub struct MqttArgs {
     pub description: Option<String>,
     /// Optional comma-separated tags for grouping in the documentation UI.
     pub tags: Vec<String>,
+    /// Optional request/publish payload type for JSON Schema generation.
+    pub request_type: Option<syn::Type>,
+    /// Optional response/subscribe payload type for JSON Schema generation.
+    pub response_type: Option<syn::Type>,
 }
 
 impl Parse for MqttArgs {
@@ -29,12 +33,13 @@ impl Parse for MqttArgs {
         let mut topic: Option<LitStr> = None;
         let mut description: Option<LitStr> = None;
         let mut tags: Option<LitStr> = None;
+        let mut request_type: Option<syn::Type> = None;
+        let mut response_type: Option<syn::Type> = None;
 
-        // Parse a comma-separated list of `key = "value"` pairs.
+        // Parse a comma-separated list of `key = value` pairs.
         while !input.is_empty() {
             let key: Ident = input.parse()?;
             let _eq: Token![=] = input.parse()?;
-            let value: LitStr = input.parse()?;
 
             match key.to_string().as_str() {
                 "topic" => {
@@ -44,7 +49,7 @@ impl Parse for MqttArgs {
                             "duplicate `topic` argument",
                         ));
                     }
-                    topic = Some(value);
+                    topic = Some(input.parse::<LitStr>()?);
                 }
                 "description" => {
                     if description.is_some() {
@@ -53,7 +58,7 @@ impl Parse for MqttArgs {
                             "duplicate `description` argument",
                         ));
                     }
-                    description = Some(value);
+                    description = Some(input.parse::<LitStr>()?);
                 }
                 "tags" => {
                     if tags.is_some() {
@@ -62,13 +67,31 @@ impl Parse for MqttArgs {
                             "duplicate `tags` argument",
                         ));
                     }
-                    tags = Some(value);
+                    tags = Some(input.parse::<LitStr>()?);
+                }
+                "request" => {
+                    if request_type.is_some() {
+                        return Err(syn::Error::new_spanned(
+                            &key,
+                            "duplicate `request` argument",
+                        ));
+                    }
+                    request_type = Some(input.parse::<syn::Type>()?);
+                }
+                "response" => {
+                    if response_type.is_some() {
+                        return Err(syn::Error::new_spanned(
+                            &key,
+                            "duplicate `response` argument",
+                        ));
+                    }
+                    response_type = Some(input.parse::<syn::Type>()?);
                 }
                 other => {
                     return Err(syn::Error::new_spanned(
                         &key,
                         format!(
-                            "unknown argument `{other}`; expected one of: topic, description, tags"
+                            "unknown argument `{other}`; expected one of: topic, description, tags, request, response"
                         ),
                     ));
                 }
@@ -99,7 +122,23 @@ impl Parse for MqttArgs {
             topic: topic.value(),
             description: description.map(|d| d.value()),
             tags: tags_vec,
+            request_type,
+            response_type,
         })
+    }
+}
+
+/// Generates tokens for a schema fn pointer field.
+fn schema_fn_tokens(ty: Option<&syn::Type>) -> proc_macro2::TokenStream {
+    match ty {
+        Some(t) => quote! {
+            ::core::option::Option::Some(|| {
+                ::lucy::_private::serde_json::to_value(
+                    ::lucy::_private::schemars::schema_for!(#t)
+                ).unwrap_or(::lucy::_private::serde_json::Value::Null)
+            })
+        },
+        None => quote! { ::core::option::Option::None },
     }
 }
 
@@ -131,17 +170,22 @@ pub fn expand(attr: TokenStream, item: TokenStream) -> TokenStream {
         quote! { &[#(#tag_lits),*] }
     };
 
+    let request_schema_tokens = schema_fn_tokens(args.request_type.as_ref());
+    let response_schema_tokens = schema_fn_tokens(args.response_type.as_ref());
+
     let expanded = quote! {
         #func
 
         ::lucy::_private::inventory::submit! {
             ::lucy::_private::lucy_types::endpoint::EndpointMetaStatic {
-                name:        #fn_name,
-                path:        #topic,
-                protocol:    ::lucy::_private::lucy_types::endpoint::Protocol::Mqtt,
-                description: #description_tokens,
-                method:      ::core::option::Option::None,
-                tags:        #tags_tokens,
+                name:              #fn_name,
+                path:              #topic,
+                protocol:          ::lucy::_private::lucy_types::endpoint::Protocol::Mqtt,
+                description:       #description_tokens,
+                method:            ::core::option::Option::None,
+                tags:              #tags_tokens,
+                request_schema_fn:  #request_schema_tokens,
+                response_schema_fn: #response_schema_tokens,
             }
         }
     };

@@ -308,6 +308,8 @@ dependencies = [
  "lucy-core",
  "lucy-macro",
  "lucy-types",
+ "schemars",
+ "serde_json",
 ]
 
 [[package]]

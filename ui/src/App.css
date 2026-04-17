@@ -268,6 +268,10 @@ body {
   gap: 0.75rem;
 }
 
+.form-section--actions {
+  margin-top: 0.5rem;
+}
+
 .form-section__row {
   display: flex;
   align-items: center;
@@ -710,3 +714,77 @@ body {
 .endpoint-group__chevron { margin-left: auto; font-size: 0.75rem; transition: transform 0.2s; }
 .endpoint-group__header--open .endpoint-group__chevron { transform: rotate(180deg); }
 .endpoint-group__body { padding-top: 0.5rem; }
+
+/* =====================================================================
+   Schema viewer
+   ===================================================================== */
+.schema-viewer {
+  background: #0a0f1a;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.schema-viewer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #1e293b;
+  background: #111827;
+}
+
+.schema-viewer__label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+}
+
+.schema-viewer__tabs {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.schema-tab {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: #64748b;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
+  min-height: 24px;
+}
+
+.schema-tab:hover { color: #94a3b8; }
+.schema-tab:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+
+.schema-tab--active {
+  background: #1e293b;
+  border-color: #334155;
+  color: #60a5fa;
+}
+
+.schema-viewer__code {
+  margin: 0;
+  padding: 0.75rem;
+  font-family: 'Fira Code', 'Cascadia Code', 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+  overflow-x: auto;
+  white-space: pre;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+/* Models panel */
+.models-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.models-panel__item {
+  /* Schema viewer handles its own styling */
+}

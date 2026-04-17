@@ -9,6 +9,8 @@ lucy-core  = { path = "../lucy-core" }
 lucy-macro = { path = "../lucy-macro" }
 lucy-types = { path = "../lucy-types" }
 inventory  = { workspace = true }
+schemars   = { workspace = true }
+serde_json = { workspace = true }
 
 [dev-dependencies]
 lucy-core = { path = "../lucy-core" }
