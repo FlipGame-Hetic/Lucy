@@ -29,10 +29,18 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo-
 
+      - name: Extract version from tag
+        run: |
+          TAG="${GITHUB_REF#refs/tags/v}"
+          echo "VERSION=$TAG" >> "$GITHUB_ENV"
+
+      - name: Update workspace version from tag
+        run: sed -i "s/^version     = \".*\"/version     = \"$VERSION\"/" Cargo.toml
+
       - name: Create ui/dist stub for rust-embed
         run: mkdir -p crates/lucy-core/ui/dist
 
-      - name: Run tests before publish
+      - name: Run tests
         run: cargo test --workspace
 
       - name: Publish lucy-types
