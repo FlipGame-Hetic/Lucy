@@ -11,6 +11,89 @@ import { schemaExampleJson } from '../utils/schemaToExample'
 /** HTTP methods that carry a request body. */
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
+// ---------------------------------------------------------------------------
+// JSON syntax highlighter
+// ---------------------------------------------------------------------------
+
+type JsonToken =
+  | { kind: 'key';     text: string }
+  | { kind: 'string';  text: string }
+  | { kind: 'number';  text: string }
+  | { kind: 'boolean'; text: string }
+  | { kind: 'null' }
+  | { kind: 'brace';   text: string }
+  | { kind: 'raw';     text: string }
+
+/**
+ * Tokenises a pretty-printed JSON string into typed tokens.
+ * Uses `String.prototype.matchAll` — no exec() involved.
+ */
+function tokeniseJson(src: string): JsonToken[] {
+  const TOKEN_RE =
+    /("(?:[^"\\]|\\.)*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|(\btrue\b|\bfalse\b)|\bnull\b|([{}[\],])/g
+
+  const tokens: JsonToken[] = []
+  let cursor = 0
+
+  for (const m of src.matchAll(TOKEN_RE)) {
+    const at = m.index ?? 0
+    if (at > cursor) {
+      tokens.push({ kind: 'raw', text: src.slice(cursor, at) })
+    }
+
+    const [full, strPart, colon, numPart, boolPart, bracePart] = m
+
+    if (strPart !== undefined) {
+      if (colon !== undefined) {
+        tokens.push({ kind: 'key', text: strPart + colon })
+      } else {
+        tokens.push({ kind: 'string', text: strPart })
+      }
+    } else if (numPart !== undefined) {
+      tokens.push({ kind: 'number', text: numPart })
+    } else if (boolPart !== undefined) {
+      tokens.push({ kind: 'boolean', text: boolPart })
+    } else if (full === 'null') {
+      tokens.push({ kind: 'null' })
+    } else if (bracePart !== undefined) {
+      tokens.push({ kind: 'brace', text: bracePart })
+    } else {
+      tokens.push({ kind: 'raw', text: full })
+    }
+
+    cursor = at + full.length
+  }
+
+  if (cursor < src.length) {
+    tokens.push({ kind: 'raw', text: src.slice(cursor) })
+  }
+
+  return tokens
+}
+
+/**
+ * Applies basic JSON syntax highlighting. Returns React nodes with
+ * colour-coded `<span>` elements. Falls back to plain text for non-JSON.
+ */
+function highlightJson(raw: string): React.ReactNode {
+  const trimmed = raw.trim()
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+    return raw
+  }
+
+  return tokeniseJson(raw).map((token, i) => {
+    switch (token.kind) {
+      case 'key':     return <span key={i} className="json-key">{token.text}</span>
+      case 'string':  return <span key={i} className="json-string">{token.text}</span>
+      case 'number':  return <span key={i} className="json-number">{token.text}</span>
+      case 'boolean': return <span key={i} className="json-boolean">{token.text}</span>
+      case 'null':    return <span key={i} className="json-null">null</span>
+      case 'brace':   return <span key={i} className="json-brace">{token.text}</span>
+      default:        return token.text
+    }
+  })
+}
+
 /** Extracts the names of all `{param}` placeholders from a path template. */
 function extractPathParams(path: string): string[] {
   return [...path.matchAll(/\{([^}]+)\}/g)].map((m) => m[1] ?? '')
@@ -53,7 +136,6 @@ function generateExampleBody(endpoint: EndpointMeta): string {
   return JSON.stringify(
     {
       _note: `Example body for ${endpoint.name} — update with actual fields`,
-      // Surface the resource name as a hint for the developer.
       ...(resource && !resource.startsWith('{')
         ? { [resource]: '' }
         : {}),
@@ -94,23 +176,6 @@ function buildCurl(
 // Sub-components
 // ---------------------------------------------------------------------------
 
-interface FormGroupProps {
-  label: string
-  htmlFor: string
-  children: React.ReactNode
-}
-
-function FormGroup({ label, htmlFor, children }: FormGroupProps): React.JSX.Element {
-  return (
-    <div className="form-group">
-      <label className="form-label" htmlFor={htmlFor}>
-        {label}
-      </label>
-      {children}
-    </div>
-  )
-}
-
 // ---------------------------------------------------------------------------
 // CurlDisplay
 // ---------------------------------------------------------------------------
@@ -149,6 +214,76 @@ function CurlDisplay({ curlCommand }: CurlDisplayProps): React.JSX.Element {
 }
 
 // ---------------------------------------------------------------------------
+// RequestBodyEditor — Swagger-style request body section
+// ---------------------------------------------------------------------------
+
+interface RequestBodyEditorProps {
+  uid: string
+  body: string
+  schema: Record<string, unknown> | undefined
+  onChange: (value: string) => void
+}
+
+function RequestBodyEditor({
+  uid,
+  body,
+  schema,
+  onChange,
+}: RequestBodyEditorProps): React.JSX.Element {
+  const [tab, setTab] = useState<'editor' | 'schema'>('editor')
+
+  return (
+    <div className="request-body">
+      {/* Header bar */}
+      <div className="request-body__header">
+        <span className="request-body__title">Request body</span>
+        <span className="request-body__required" aria-label="required">*</span>
+        <span className="request-body__content-type">application/json</span>
+      </div>
+
+      {/* Tabs — only show Schema tab when a schema is available */}
+      {schema !== undefined && (
+        <div className="request-body__tabs" role="tablist">
+          <button
+            role="tab"
+            aria-selected={tab === 'editor'}
+            className={`request-body__tab${tab === 'editor' ? ' request-body__tab--active' : ''}`}
+            onClick={() => setTab('editor')}
+          >
+            Example Value
+          </button>
+          <button
+            role="tab"
+            aria-selected={tab === 'schema'}
+            className={`request-body__tab${tab === 'schema' ? ' request-body__tab--active' : ''}`}
+            onClick={() => setTab('schema')}
+          >
+            Schema
+          </button>
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="request-body__editor">
+        {(tab === 'editor' || schema === undefined) ? (
+          <textarea
+            id={`${uid}-body`}
+            className="request-body__textarea"
+            placeholder={'{\n  \n}'}
+            value={body}
+            onChange={(e) => onChange(e.target.value)}
+            spellCheck={false}
+            aria-label="Request body JSON"
+          />
+        ) : (
+          <SchemaViewer schema={schema} label="Request" />
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Response state
 // ---------------------------------------------------------------------------
 
@@ -171,13 +306,13 @@ interface HttpEndpointCardProps {
  * Interactive card for a single HTTP endpoint.
  *
  * Features:
- * - Collapsible via header click
- * - Auto-detected path parameters with individual inputs
- * - Global auth from AuthContext (Bearer / API Key / Basic — no per-card token)
- * - JSON body textarea pre-filled with an example skeleton (POST/PUT/PATCH/DELETE)
+ * - Collapsible via header click with Swagger-style method-coloured header
+ * - Auto-detected path parameters rendered as a table with individual inputs
+ * - Global auth from AuthContext (Bearer / API Key / Basic)
+ * - JSON body editor with content-type badge and optional Schema tab
  * - Live cURL preview that updates as inputs change
- * - Execute button with loading state
- * - Colour-coded response panel with latency and pretty-printed body
+ * - Prominent Execute button coloured by HTTP method with loading spinner
+ * - Colour-coded response panel with JSON syntax highlighting
  */
 export function HttpEndpointCard({ endpoint }: HttpEndpointCardProps): React.JSX.Element {
   const uid = useId()
@@ -191,6 +326,7 @@ export function HttpEndpointCard({ endpoint }: HttpEndpointCardProps): React.JSX
   const [paramValues, setParamValues] = useState<Record<string, string>>(
     Object.fromEntries(pathParams.map((p) => [p, ''])),
   )
+
   // Pre-fill body from request_schema when available; fall back to the generic skeleton.
   const [body, setBody] = useState(() => {
     if (hasBody && endpoint.request_schema) {
@@ -198,6 +334,7 @@ export function HttpEndpointCard({ endpoint }: HttpEndpointCardProps): React.JSX
     }
     return hasBody ? generateExampleBody(endpoint) : ''
   })
+
   const [loading, setLoading] = useState(false)
   const [response, setResponse] = useState<ResponseState | null>(null)
   const [fetchError, setFetchError] = useState<string | null>(null)
@@ -206,8 +343,7 @@ export function HttpEndpointCard({ endpoint }: HttpEndpointCardProps): React.JSX
     setParamValues((prev) => ({ ...prev, [param]: value }))
   }
 
-  // Computed values — derived from current state on every render (no stale
-  // state required; React Compiler handles the memoization automatically).
+  // Computed values — derived from current state on every render.
   const resolvedPath = resolvePath(endpoint.path, paramValues)
   const authHeaders = buildAuthHeaders(auth)
   const requestHeaders: Record<string, string> = {
@@ -257,9 +393,11 @@ export function HttpEndpointCard({ endpoint }: HttpEndpointCardProps): React.JSX
   const headerId = `http-card-header-${uid}`
   const bodyId = `http-card-body-${uid}`
 
+  const requestSchema = endpoint.request_schema as Record<string, unknown> | undefined
+
   return (
     <li className="endpoint-card">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+      {/* ── Header (Swagger-style toggle row) ────────────────────────── */}
       <button
         id={headerId}
         className="endpoint-card__toggle"
@@ -274,84 +412,104 @@ export function HttpEndpointCard({ endpoint }: HttpEndpointCardProps): React.JSX
         {endpoint.description !== undefined && (
           <span className="endpoint-card__summary">{endpoint.description}</span>
         )}
-        <span className={`endpoint-card__chevron${expanded ? ' endpoint-card__chevron--open' : ''}`} aria-hidden="true">
+        <span
+          className={`endpoint-card__chevron${expanded ? ' endpoint-card__chevron--open' : ''}`}
+          aria-hidden="true"
+        >
           ›
         </span>
       </button>
 
-      {/* ── Expandable body ────────────────────────────────────────────── */}
+      {/* ── Expandable body ──────────────────────────────────────────── */}
       {expanded && (
         <div id={bodyId} className="endpoint-card__body" role="region" aria-labelledby={headerId}>
 
-          {/* Path parameters */}
+          {/* Path parameters — table layout */}
           {pathParams.length > 0 && (
-            <section className="form-section">
-              <h3 className="form-section__title">
-                <span className="form-section__badge">Path Parameters</span>
-              </h3>
-              {pathParams.map((param) => (
-                <FormGroup key={param} label={param} htmlFor={`${uid}-param-${param}`}>
-                  <input
-                    id={`${uid}-param-${param}`}
-                    className="form-input"
-                    type="text"
-                    placeholder={param}
-                    value={paramValues[param] ?? ''}
-                    onChange={(e) => handleParamChange(param, e.target.value)}
-                  />
-                </FormGroup>
-              ))}
-            </section>
+            <div className="endpoint-section">
+              <div className="section-header">
+                <span className="section-title">Parameters</span>
+              </div>
+              <table className="params-table" role="table">
+                <thead>
+                  <tr>
+                    <th scope="col">Name</th>
+                    <th scope="col">Type</th>
+                    <th scope="col">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pathParams.map((param) => (
+                    <tr key={param}>
+                      <td>
+                        <span className="param-name">
+                          {param}
+                          <span className="param-required" aria-label="required">*</span>
+                        </span>
+                      </td>
+                      <td>
+                        <span className="param-type">string</span>
+                      </td>
+                      <td>
+                        <input
+                          id={`${uid}-param-${param}`}
+                          className="form-input"
+                          type="text"
+                          placeholder={`Enter ${param}`}
+                          value={paramValues[param] ?? ''}
+                          onChange={(e) => handleParamChange(param, e.target.value)}
+                          aria-label={`Path parameter: ${param}`}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {/* Auth info — read-only display of what's configured globally */}
           {auth.type !== 'none' && (
-            <section className="form-section">
-              <h3 className="form-section__title">
-                <span className="form-section__badge">Authorization</span>
-              </h3>
+            <div className="endpoint-section">
+              <div className="section-header">
+                <span className="section-title">Authorization</span>
+              </div>
               <p className="auth-info-label">
-                Using global auth: <strong>{auth.type}</strong>
+                <span>Global auth:</span>
+                <strong>{auth.type}</strong>
                 {auth.type === 'api-key' && auth.apiKeyHeader
-                  ? ` (${auth.apiKeyHeader})`
-                  : ''}
+                  ? <code>({auth.apiKeyHeader})</code>
+                  : null}
               </p>
-            </section>
+            </div>
           )}
 
-          {/* Request body */}
+          {/* Request body — Swagger-style editor */}
           {hasBody && (
-            <section className="form-section">
-              <h3 className="form-section__title">
-                <span className="form-section__badge">Request Body</span>
-              </h3>
-              <FormGroup label="JSON" htmlFor={`${uid}-body`}>
-                <textarea
-                  id={`${uid}-body`}
-                  className="form-textarea"
-                  placeholder={'{\n  \n}'}
-                  rows={6}
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  spellCheck={false}
-                />
-              </FormGroup>
-            </section>
+            <div className="endpoint-section">
+              <RequestBodyEditor
+                uid={uid}
+                body={body}
+                schema={requestSchema}
+                onChange={setBody}
+              />
+            </div>
           )}
 
           {/* Execute */}
-          <div className="form-section">
+          <div className="execute-bar">
             <button
-              className="btn btn--primary"
+              className="btn-execute"
               onClick={() => void handleExecute()}
               disabled={loading}
               aria-busy={loading}
             >
+              {loading && <span className="btn-execute__spinner" aria-hidden="true" />}
               {loading ? 'Executing…' : 'Execute'}
             </button>
           </div>
 
-          {/* cURL display — always visible once the card is open */}
+          {/* cURL preview */}
           <CurlDisplay curlCommand={curlCommand} />
 
           {/* Network error */}
@@ -363,29 +521,32 @@ export function HttpEndpointCard({ endpoint }: HttpEndpointCardProps): React.JSX
 
           {/* Response */}
           {response !== null && (
-            <div className="response-panel">
-              <div className="response-panel__meta">
-                <span
-                  className={`status-badge status-badge--${statusBadgeModifier(response.status)}`}
-                >
-                  {response.status} {response.statusText}
-                </span>
-                <span className="response-latency">{response.latencyMs} ms</span>
+            <div className="response-section">
+              <p className="response-section__title">Server response</p>
+              <div className="response-panel">
+                <div className="response-panel__meta">
+                  <span
+                    className={`status-badge status-badge--${statusBadgeModifier(response.status)}`}
+                  >
+                    {response.status} {response.statusText}
+                  </span>
+                  <span className="response-latency">{response.latencyMs} ms</span>
+                </div>
+                <pre className="response-body">
+                  <code>{highlightJson(response.body)}</code>
+                </pre>
               </div>
-              <pre className="response-body">
-                <code>{response.body}</code>
-              </pre>
             </div>
           )}
 
           {/* Response schema viewer */}
           {response !== null && endpoint.response_schema && (
-            <section className="form-section">
+            <div className="endpoint-section">
               <SchemaViewer
                 schema={endpoint.response_schema as Record<string, unknown>}
                 label="Response"
               />
-            </section>
+            </div>
           )}
         </div>
       )}

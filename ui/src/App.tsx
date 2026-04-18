@@ -56,87 +56,96 @@ function AppInner(): React.JSX.Element {
 
   return (
     <div className="app">
-      <header className="app__header">
-        <div className="app__header-left">
-          <h1 className="app__title">Lucy</h1>
-          {spec !== null && (
-            <p className="app__version">Spec version: {spec.version}</p>
-          )}
-        </div>
+      {/* ── Top banner ──────────────────────────────────────────────── */}
+      <div className="app__banner">
+        <header className="app__header">
+          <div className="app__header-left">
+            <h1 className="app__title">Lucy</h1>
+            {spec !== null && (
+              <p className="app__version">v{spec.version}</p>
+            )}
+          </div>
 
-        <button
-          className={[
-            'btn--authorize',
-            isAuthConfigured ? 'btn--authorize--active' : '',
-          ]
-            .filter(Boolean)
-            .join(' ')}
-          onClick={() => setShowAuthModal(true)}
-          aria-haspopup="dialog"
-          aria-expanded={showAuthModal}
+          <button
+            className={[
+              'btn--authorize',
+              isAuthConfigured ? 'btn--authorize--active' : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+            onClick={() => setShowAuthModal(true)}
+            aria-haspopup="dialog"
+            aria-expanded={showAuthModal}
+          >
+            {isAuthConfigured ? `Authorized (${auth.type})` : 'Authorize'}
+          </button>
+        </header>
+      </div>
+
+      {/* ── Tab nav ─────────────────────────────────────────────────── */}
+      <div className="app__nav-wrapper">
+        <nav aria-label="Protocol tabs">
+          <ul className="tab-bar" role="tablist">
+            {TABS.map((tab) => (
+              <li key={tab} role="presentation">
+                <button
+                  role="tab"
+                  aria-selected={activeTab === tab}
+                  aria-controls={`panel-${tab}`}
+                  id={`tab-${tab}`}
+                  className={[
+                    'tab-bar__button',
+                    activeTab === tab ? 'tab-bar__button--active' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  onClick={() => setActiveTab(tab)}
+                >
+                  {TAB_LABELS[tab]}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+
+      {/* ── Main content ────────────────────────────────────────────── */}
+      <div className="app__content">
+        <main
+          id={`panel-${activeTab}`}
+          role="tabpanel"
+          aria-labelledby={`tab-${activeTab}`}
+          className="panel"
         >
-          {isAuthConfigured ? `Authorized (${auth.type})` : 'Authorize'}
-        </button>
-      </header>
+          {loading && (
+            <p className="panel-loading" aria-live="polite">
+              Loading spec...
+            </p>
+          )}
 
-      <nav aria-label="Protocol tabs">
-        <ul className="tab-bar" role="tablist">
-          {TABS.map((tab) => (
-            <li key={tab} role="presentation">
-              <button
-                role="tab"
-                aria-selected={activeTab === tab}
-                aria-controls={`panel-${tab}`}
-                id={`tab-${tab}`}
-                className={[
-                  'tab-bar__button',
-                  activeTab === tab ? 'tab-bar__button--active' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                onClick={() => setActiveTab(tab)}
-              >
-                {TAB_LABELS[tab]}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
+          {!loading && error !== null && (
+            <p className="panel-error" role="alert">
+              {error}
+            </p>
+          )}
 
-      <main
-        id={`panel-${activeTab}`}
-        role="tabpanel"
-        aria-labelledby={`tab-${activeTab}`}
-        className="panel"
-      >
-        {loading && (
-          <p className="panel-loading" aria-live="polite">
-            Loading spec...
-          </p>
-        )}
+          {!loading && error === null && activeTab === 'http' && (
+            <HttpPanel endpoints={filteredEndpoints} />
+          )}
 
-        {!loading && error !== null && (
-          <p className="panel-error" role="alert">
-            {error}
-          </p>
-        )}
+          {!loading && error === null && activeTab === 'ws' && (
+            <WsPanel endpoints={filteredEndpoints} />
+          )}
 
-        {!loading && error === null && activeTab === 'http' && (
-          <HttpPanel endpoints={filteredEndpoints} />
-        )}
+          {!loading && error === null && activeTab === 'mqtt' && (
+            <MqttPanel endpoints={filteredEndpoints} />
+          )}
 
-        {!loading && error === null && activeTab === 'ws' && (
-          <WsPanel endpoints={filteredEndpoints} />
-        )}
-
-        {!loading && error === null && activeTab === 'mqtt' && (
-          <MqttPanel endpoints={filteredEndpoints} />
-        )}
-
-        {!loading && error === null && activeTab === 'models' && (
-          <ModelsPanel endpoints={spec?.endpoints ?? []} />
-        )}
-      </main>
+          {!loading && error === null && activeTab === 'models' && (
+            <ModelsPanel endpoints={spec?.endpoints ?? []} />
+          )}
+        </main>
+      </div>
 
       {showAuthModal && (
         <AuthModal onClose={() => setShowAuthModal(false)} />

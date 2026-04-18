@@ -21,7 +21,7 @@ function EndpointGroup({ tag, endpoints }: EndpointGroupProps): React.JSX.Elemen
   const [open, setOpen] = useState(true)
 
   return (
-    <section className="endpoint-group">
+    <section className="endpoint-group" aria-label={`${tag} endpoints`}>
       <button
         className={[
           'endpoint-group__header',
@@ -33,7 +33,9 @@ function EndpointGroup({ tag, endpoints }: EndpointGroupProps): React.JSX.Elemen
         onClick={() => setOpen((v) => !v)}
       >
         <span className="endpoint-group__tag">{tag}</span>
-        <span className="endpoint-group__count">{endpoints.length}</span>
+        <span className="endpoint-group__count" aria-label={`${endpoints.length} endpoints`}>
+          {endpoints.length}
+        </span>
         <span className="endpoint-group__chevron" aria-hidden="true">▼</span>
       </button>
 
