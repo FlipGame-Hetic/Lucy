@@ -35,7 +35,11 @@ jobs:
           echo "VERSION=$TAG" >> "$GITHUB_ENV"
 
       - name: Update workspace version from tag
-        run: sed -i "s/^version     = \".*\"/version     = \"$VERSION\"/" Cargo.toml
+        run: |
+          sed -i "s/^version     = \".*\"/version     = \"$VERSION\"/" Cargo.toml
+          sed -i "s/\(lucy-types.*version = \)\"[^\"]*\"/\1\"$VERSION\"/" Cargo.toml
+          sed -i "s/\(lucy-core.*version = \)\"[^\"]*\"/\1\"$VERSION\"/" Cargo.toml
+          sed -i "s/\(lucy-macro.*version = \)\"[^\"]*\"/\1\"$VERSION\"/" Cargo.toml
 
       - name: Create ui/dist stub for rust-embed
         run: mkdir -p crates/lucy-core/ui/dist
